@@ -576,9 +576,10 @@ def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataL
                         accelerator.save_state(output_dir=f"checkpoint_best")
                         accelerator.print(f"   🏆 New best model saved!")
                     
-                    # Save periodic checkpoint for resumption
-                    accelerator.save_state(output_dir=f"checkpoint_step_{step}")
-                    accelerator.print(f"   💾 Checkpoint saved at step {step}")
+                    # Save periodic checkpoint for resumption (every 10k steps)
+                    if step % 10000 == 0:
+                        accelerator.save_state(output_dir=f"checkpoint_step_{step}")
+                        accelerator.print(f"   💾 Checkpoint saved at step {step}")
 
             step += 1
             if step % 100 == 0 and accelerator.is_local_main_process:
