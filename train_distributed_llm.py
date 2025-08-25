@@ -31,7 +31,7 @@ class ModelConfig:
     n_layers: int = 6
     d_ff: int = 1536
     batch_size: int = 24  # Per GPU batch size
-    max_steps: int = 5000
+    num_epochs: int = 1  # Number of epochs through the full dataset
 
     # Training parameters
     gradient_accumulation_steps: int = 4
@@ -53,6 +53,12 @@ class ModelConfig:
     # Technical
     mixed_precision: str = "fp16"  # "no", "fp16", "bf16"
     vocab_size: Optional[int] = None
+    
+    # Checkpoint resumption
+    resume_from_checkpoint: Optional[str] = None  # Path to checkpoint directory
+    
+    # Will be calculated dynamically
+    max_steps: Optional[int] = None
 
     def __post_init__(self):
         self.d_k = self.d_model // self.n_heads
@@ -478,9 +484,35 @@ def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataL
     for i, scheduler in enumerate(schedulers):
         schedulers[i] = accelerator.prepare(scheduler)
 
+    # Checkpoint resumption
+    starting_step = 0
+    if config.resume_from_checkpoint:
+        if os.path.exists(config.resume_from_checkpoint):
+            accelerator.print(f"🔄 Resuming training from {config.resume_from_checkpoint}")
+            accelerator.load_state(config.resume_from_checkpoint)
+            
+            # Extract step number from checkpoint directory name if possible
+            checkpoint_name = os.path.basename(config.resume_from_checkpoint)
+            if "step_" in checkpoint_name:
+                try:
+                    starting_step = int(checkpoint_name.split("step_")[1])
+                    accelerator.print(f"   Resuming from step {starting_step}")
+                except ValueError:
+                    accelerator.print(f"   Could not extract step number, starting from 0")
+            else:
+                accelerator.print(f"   Resuming training (step number unknown)")
+        else:
+            accelerator.print(f"⚠️  Checkpoint directory {config.resume_from_checkpoint} not found, starting fresh training")
+    
+    # Auto-resume from latest checkpoint if available
+    elif os.path.exists("checkpoint_best"):
+        accelerator.print(f"🔄 Auto-resuming from checkpoint_best")
+        accelerator.load_state("checkpoint_best")
+        accelerator.print(f"   Loaded best checkpoint")
+
     # Training loop
     model.train()
-    step = 0
+    step = starting_step
     start_time = time.time()
     best_val_loss = float('inf')
 
@@ -541,6 +573,11 @@ def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataL
                         best_val_loss = eval_metrics['val_loss']
                         # Save best model
                         accelerator.save_state(output_dir=f"checkpoint_best")
+                        accelerator.print(f"   🏆 New best model saved!")
+                    
+                    # Save periodic checkpoint for resumption
+                    accelerator.save_state(output_dir=f"checkpoint_step_{step}")
+                    accelerator.print(f"   💾 Checkpoint saved at step {step}")
 
             step += 1
             if step % 100 == 0 and accelerator.is_local_main_process:
@@ -588,10 +625,20 @@ def main():
     config = ModelConfig()
     config.mixed_precision = accelerator.mixed_precision
     
+    # Check for resume checkpoint from environment variable (used by resume_training.py)
+    if os.environ.get('RESUME_FROM_CHECKPOINT'):
+        config.resume_from_checkpoint = os.environ['RESUME_FROM_CHECKPOINT']
+        accelerator.print(f"🔄 Environment variable set - will resume from: {config.resume_from_checkpoint}")
+    
+    # Uncomment to resume from a specific checkpoint manually:
+    # config.resume_from_checkpoint = "checkpoint_step_1500"  # or "checkpoint_best" or "checkpoint_final"
+    
+    if config.resume_from_checkpoint:
+        accelerator.print(f"🔄 Will attempt to resume from: {config.resume_from_checkpoint}")
+    
     accelerator.print(f"\n📋 Model Configuration:")
     accelerator.print(f"   Architecture: {config.d_model}d, {config.n_layers}L, {config.n_heads}H, {config.d_ff}ff")
-    accelerator.print(f"   Training: {config.max_steps} steps, batch size {config.batch_size} per GPU")
-    accelerator.print(f"   Effective batch size: {config.batch_size * accelerator.num_processes * config.gradient_accumulation_steps}")
+    accelerator.print(f"   Training: {config.num_epochs} epochs ({config.max_steps:,} steps), batch size {config.batch_size} per GPU")
     accelerator.print(f"   Data: hermes_reasoning_tool_use dataset, seq_len {config.max_seq_len}")
 
     # Load data
@@ -608,6 +655,17 @@ def main():
     train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
         dataset, [train_size, val_size, test_size], generator=torch.Generator().manual_seed(42)
     )
+
+    # Calculate max_steps based on dataset size to ensure full dataset training
+    effective_batch_size = config.batch_size * accelerator.num_processes * config.gradient_accumulation_steps
+    steps_per_epoch = len(train_dataset) // effective_batch_size
+    config.max_steps = steps_per_epoch * config.num_epochs
+    
+    accelerator.print(f"📊 Training Configuration:")
+    accelerator.print(f"   Steps per epoch: {steps_per_epoch:,}")
+    accelerator.print(f"   Total epochs: {config.num_epochs}")
+    accelerator.print(f"   Total training steps: {config.max_steps:,}")
+    accelerator.print(f"   Effective batch size: {effective_batch_size}")
 
     # Create dataloaders (Accelerate will handle distribution)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=2)
