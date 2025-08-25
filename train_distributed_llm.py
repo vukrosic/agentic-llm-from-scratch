@@ -627,7 +627,7 @@ def main():
     config.mixed_precision = accelerator.mixed_precision
     
     # QUICK TEST CONFIGURATION - Uncomment for testing:
-    config.max_steps = 300  # Manual override for testing
+    config.max_steps = None  # Manual override for testing
     config.data_fraction = 0.04  # Use 1/26th of the data (as requested)
     accelerator.print(f"🗺️ TEST MODE: Using {config.data_fraction:.1%} of data, max_steps = {config.max_steps}")
     
