@@ -58,7 +58,7 @@ class ModelConfig:
     resume_from_checkpoint: Optional[str] = None  # Path to checkpoint directory
     
     # Will be calculated dynamically
-    max_steps: Optional[int] = None
+    max_steps: Optional[int] = 300
 
     def __post_init__(self):
         self.d_k = self.d_model // self.n_heads
