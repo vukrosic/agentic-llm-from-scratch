@@ -1,0 +1,155 @@
+# Sample from hermes_reasoning_tool_use dataset
+
+Test Statistics (first 100 conversations):
+- Total conversations: 100
+- Total characters: 592,442
+- Average chars per conversation: 5924.4
+- Total tokens: 154,753
+- Average tokens per conversation: 1547.5
+- Vocabulary size: 49,152
+
+=== Conversation 1 ===
+<|system|>
+You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.
+
+You are a function calling AI model. You are provided with function signatures within <tools> </tools> XML tags. You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions. Here are the available tools: <tools> [{"name": "calculate_age", "description": "Calculates the age based on the birthdate.", "parameters": {"birthdate": {"description": "The birthdate in the format 'YYYY-MM-DD'.", "type": "str"}}}, {"name": "find_duplicate_number", "description": "Finds the duplicate number in a list of integers.", "parameters": {"nums": {"description": "The list of integers.", "type": "List[int]"}}}, {"name": "word_frequency", "description": "Calculates the frequency of each word in a text.", "parameters": {"text": {"description": "The input text.", "type": "str"}}}, {"name": "reverse_words", "description": "Reverses the order of words in a sentence.", "parameters": {"sentence": {"description": "The input sentence.", "type": "str"}}}] </tools> Use the following pydantic model JSON schema for each tool call you will make: {'properties': {'arguments': {'title': 'Arguments', 'type': 'object'}, 'name': {'title': 'Name', 'type':'string'}},'required': ['arguments', 'name'], 'title': 'FunctionCall', 'type': 'object'} For each function call return a json object with function name and arguments within <tool_call> </tool_call> XML tags as follows:
+<tool_call>
+{tool_call}
+</tool_call>
+
+
+
+<|user|>
+What is the word frequency of 'The quick brown fox jumps over the lazy dog'? And can you reverse the words in the sentence 'Hello world this is a test'?
+
+<|assistant|>
+<think>
+Okay, the user has two separate questions here. The first is to find the word frequency of the sentence "The quick brown fox jumps over the lazy dog". The second is to reverse the words in the sentence "Hello world this is a test". Let me break down each part step by step.
+
+Starting with the word frequency: I need to use the word_frequency tool. The input text is given as a string, so I'll pass that into the tool. That should return a dictionary where each key is a word and the value is its frequency.
+
+Next, the reverse the sentence part. The user wants the words reversed. That's a straightforward reverse of words in the sentence. The reverse_words tool should handle this. The sentence is "Hello world this is a test", so I'll pass that into the reverse_words function, which will return the sentence with words reversed.
+
+So I need to make two separate function calls: one for word_frequency and another for reverse_words. I'll use the word_frequency tool with the sentence as the text parameter, and reverse_words with the same sentence. The outputs from each tool will be returned as JSON objects.
+</think>
+<tool_call>
+{"name":"word_frequency","arguments":{"text":"The quick brown fox jumps over the lazy dog"}}
+</tool_call>
+<tool_call>
+{"name":"reverse_words","arguments":{"sentence":"Hello world this is a test"}}
+</tool_call>
+
+
+
+=== Conversation 2 ===
+<|system|>
+You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.
+
+You are a function calling AI model. You are provided with function signatures within <tools> </tools> XML tags. You may call one or more functions to assist with the user query. If available tools are not relevant in assisting with user query, just respond in natural conversational language. Don't make assumptions about what values to plug into functions. After calling & executing the functions, you will be provided with function results within <tool_response> </tool_response> XML tags. Here are the available tools:
+<tools>
+[
+{"name": "products_v2_list", "description": "Fetches a list of products from the ASOS store with various filtering and sorting options.", "parameters": {"type": "dict", "properties": {"store": {"description": "The store identifier obtained from the countries/list API.", "type": "str", "default": "US"}, "offset": {"description": "The offset to skip already viewed products.", "type": "int", "default": "0"}, "categoryid": {"description": "The category identifier from the categories/list API.", "type": "int", "default": "4209"}, "limit": {"description": "The number of items per page.", "type": "int", "default": "48"}, "attribute_1046": {"description": "Filter by style, multiple values separated by comma.", "type": "str, optional", "default": ""}, "pricemin": {"description": "Minimum price filter.", "type": "int, optional", "default": ""}, "country": {"description": "Country code; default is 'US'.", "type": "str, optional", "default": "US"}, "attribute_10147": {"description": "Filter by leather/non-leather, multiple values separated by comma.", "type": "str, optional", "default": ""}, "sort": {"description": "Sorting option, one of 'pricedesc', 'priceasc', or 'freshness'; default is 'freshness'.", "type": "str, optional", "default": "freshness"}, "q": {"description": "Search query for products by name (do not use with categoryId).", "type": "str, optional", "default": ""}, "base_colour": {"description": "Filter by color, multiple values separated by comma.", "type": "str, optional", "default": ""}, "range": {"description": "Filter by sale/new season, multiple values separated by comma.", "type": "str, optional", "default": ""}, "attribute_1047": {"description": "Filter by product type, multiple values separated by comma.", "type": "str, optional", "default": ""}, "currency": {"description": "Currency code obtained from countries/list API; default is 'USD'.", "type": "str, optional", "default": "USD"}, "attribute_10155": {"description": "Filter by range, multiple values separated by comma.", "type": "str, optional", "default": ""}, "pricemax": {"description": "Maximum price filter.", "type": "int, optional", "default": ""}, "sizeschema": {"description": "Size schema identifier obtained from countries/list API; default is 'US'.", "type": "str, optional", "default": "US"}, "brand": {"description": "Filter by brand, multiple values separated by comma.", "type": "str, optional", "default": ""}, "size": {"description": "Filter by size, multiple values separated by comma.", "type": "str, optional", "default": ""}, "lang": {"description": "Language code; default is 'en-US'.", "type": "str, optional", "default": "en-US"}}}, "required": ["store", "offset", "categoryid", "limit"]},
+{"name": "tmall_search_by_keyword", "description": "Searches for products on Tmall by keyword.", "parameters": {"type": "dict", "properties": {"page": {"description": "The page number of the search results to retrieve.", "type": "int", "default": "1"}, "keyword": {"description": "The keyword to search for products.", "type": "str", "default": "\u6d77\u4e45\u6c34\u74f6"}}}, "required": ["page", "keyword"]},
+{"name": "navigations_get_node_content", "description": "Fetches the content of a node in a navigation hierarchy.", "parameters": {"type": "dict", "properties": {"is_id": {"description": "The 'id' field value returned from the /navigations/get-root endpoint.", "type": "int", "default": "26066300130"}, "cat_id": {"description": "The 'cat_id' field value returned from the /navigations/get-tabs endpoint.", "type": "int", "default": "2026"}, "language": {"description": "The 2-letter language code (default is 'en').", "type": "str, optional", "default": "en"}, "currency": {"description": "The 3-letter currency code (default is 'USD').", "type": "str, optional", "default": "USD"}, "country": {"description": "The 2-letter country code (default is 'US').", "type": "str, optional", "default": "US"}}}, "required": ["is_id", "cat_id"]}
+]
+</tools>
+For each function call return a JSON object, with the following pydantic model json schema for each:
+{'title': 'FunctionCall', 'type': 'object', 'properties': {'name': {'title': 'Name', 'type':'string'}, 'arguments': {'title': 'Arguments', 'type': 'object'}},'required': ['name', 'arguments']}
+Each function call should be enclosed within <tool_call> </tool_call> XML tags.
+Example:
+<tool_call>
+{'name': <function-name>,'arguments': <args-dict>}
+</tool_call>
+
+
+
+<|user|>
+Search for 'laptops' on Tmall and retrieve the second page of results.
+
+<|assistant|>
+<think>
+Okay, the user wants to search for 'laptops' on Tmall and retrieve the second page of results. Let's think about how to do this.
+
+First, the available functions are listed. The tmall_search_by_keyword function seems suitable here. Looking at its parameters, I need to provide the page number and the keyword. The keyword here is 'laptops', and the page is the second one, so page=2.
+
+So the function call should use tmall_search_by_keyword with page=2 and keyword='laptops'. That should give the results for the second page.
+
+Wait, does the function return the correct data structure? The user might want the product details, like names, prices, maybe images. The documentation says tmall_search_by_keyword returns a list of products, each with title, price, picture, and other details. So yes, this should work.
+</think>
+<tool_call>
+{"name":"tmall_search_by_keyword","arguments":{"page":2,"keyword":"laptops"}}
+</tool_call>
+
+<|tool|>
+<tool_response>
+{"name":"tmall_search_by_keyword","content":{"data":[{"id":"10000000","title":"Acer Aspire 5 Slim Laptop","price":"699.99","picture":"https://example.com/acer-aspire-5.jpg","description":"15.6 inches FHD IPS Display, 8GB RAM, 256GB SSD","brand":"Acer","category":"Laptops","rating":4.5},{"id":"10000001","title":"HP Pavilion x360 14","price":"599.99","picture":"https://example.com/hp-pavilion-x360.jpg","description":"14 inches Touchscreen Convertible, 8GB RAM, 256GB SSD","brand":"HP","category":"Laptops","rating":4.3},{"id":"10000002","title":"Dell Inspiron 15 3501 Laptop","price":"549.99","picture":"https://example.com/dell-inspiron.jpg","description":"15.6 inches HD Display, 8GB RAM, 256GB SSD","brand":"Dell","category":"Laptops","rating":4.1},{"id":"10000003","title":"Lenovo IdeaPad 3 Laptop","price":"529.99","picture":"https://example.com/lenovo-ideapad.jpg","description":"15.6 inches HD Display, 8GB RAM, 256GB SSD","brand":"Lenovo","category":"Laptops","rating":4.2},{"id":"10000004","title":"ASUS VivoBook 15 Laptop","price":"649.99","picture":"https://example.com/asus-vivobook.jpg","description":"15.6 inches FHD Display, 8GB RAM, 256GB SSD","brand":"ASUS","category":"Laptops","rating":4.4},{"id":"10000005","title":"Samsung Galaxy Book Pro Laptop","price":"849.99","picture":"https://example.com/samsung-galaxy-book.jpg","description":"13.3 inches FHD OLED Display, 8GB RAM, 256GB SSD","brand":"Samsung","category":"Laptops","rating":4.6}],"page":2,"total_results":50,"total_pages":25}}
+</tool_response>
+
+
+
+=== Conversation 3 ===
+<|system|>
+You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.
+
+You are a function calling AI model. You are provided with function signatures within <tools> </tools> XML tags. You may call one or more functions to assist with the user query. If available tools are not relevant in assisting with user query, just respond in natural conversational language. Don't make assumptions about what values to plug into functions. After calling & executing the functions, you will be provided with function results within <tool_response> </tool_response> XML tags. Here are the available tools:
+<tools>
+[{"name":"extract","description":"Extracts data from a LinkedIn URL (prostring or company page).","parameters":{"type":"dict","properties":{"url":{"description":"The LinkedIn URL to extract data from","type":"string"},"html":{"description":"Whether to output raw HTML in.raw property. Disabled by default.","type":"boolean","default":true}},"required":["url"]},"required":null},{"name":"get_all_motivational_quotes","description":"This endpoint fetches all motivational quotes. You can do pagination as well using the'skip' and 'limit' parameters.","parameters":{"type":"dict","properties":{"skip":{"description":"The number of quotes to skip from the beginning of the result set.","type":"float"},"limit":{"description":"The maximum number of quotes to return.","type":"float"}},"required":[]},"required":null},{"name":"get_sub_regions","description":"Get a list of sub-regions in the world, filtered by the specified region.","parameters":{"type":"dict","properties":{"region":{"description":"The name of the region to get sub-regions for.","type":"string"},"language":{"description":"The language to use for the response.","type":"string"}},"required":["region"]},"required":null},{"name":"consulta_estabelecimento","description":"Retrieve information about a company (estabelecimento) based on its CNPJ (Corporate Number) from various sources such as Receita Federal, Simples Nacional, and Cadastro de Contribuintes.","parameters":{"type":"dict","properties":{"CNPJ":{"description":"The CNPJ of the company to retrieve information about","type":"string"},"maxAge":{"description":"The maximum age of the data in days","type":"float","default":30},"simplesHistory":{"description":"Whether to include Simples Nacional history","type":"boolean","default":false},"registrations":{"description":"UFs (states) to include in the Cadastro de Contribuintes information, separated by commas. Use 'BR' to include all states.","type":"string","default":"BR"},"simples":{"description":"Whether to include Simples Nacional information","type":"boolean","default":true}},"required":["CNPJ"]},"required":null},{"name":"realtor_school_list","description":"This API returns a list of Realtor schools in a given city, state, and school level. The response includes school details such as name, rating, and reviews.","parameters":{"type":"dict","properties":{"city":{"description":"The city to filter schools by","type":"string"},"state_code":{"description":"The state code to filter schools by","type":"string"},"school_level":{"description":"The school level to filter schools by (elementary, middle, high, private, charter)","type":"string"},"page":{"description":"The page number to retrieve (default: 1)","type":"int"}},"required":["city","state_code","school_level","page"]},"required":null}]
+</tools>
+For each function call return a JSON object, with the following pydantic model json schema for each:
+{'title': 'FunctionCall', 'type': 'object', 'properties': {'name': {'title': 'Name', 'type':'string'}, 'arguments': {'title': 'Arguments', 'type': 'object'}},'required': ['name', 'arguments']}
+Each function call should be enclosed within <tool_call> </tool_call> XML tags.
+Example:
+<tool_call>
+{'name': <function-name>,'arguments': <args-dict>}
+</tool_call>
+
+
+
+<|user|>
+I would like to extract details from a LinkedIn company page. Could you assist me in fetching the information from this URL: https://www.linkedin.com/company/abc-corporation?
+
+<|assistant|>
+<think>
+Okay, the user wants to extract details from a LinkedIn company page. The URL provided is https://www.linkedin.com/company/company-name. I need to use the extract tool to get this done. The extract tool has a parameter for the URL and an optional HTML flag. Since the user didn't specify any other parameters, I'll just provide the URL.
+
+Wait, the URL passed is a company page, so the extract function should handle that. The result will include things like the company's name, industry, employees, headquarters, etc. The user didn't mention any specific details to extract, so I should just go with the default extraction. The HTML flag is set to true by default, but since they might want the raw data, I should include it in the parameters. But the documentation says it's optional. The extract tool should handle the data extraction from the company page.
+</think>
+<tool_call>
+{"name":"extract","arguments":{"url":"https://www.linkedin.com/company/abc-corporation"}}
+</tool_call>
+
+<|tool|>
+<tool_response>
+{"tool_call_id": "call_45cde0fe39464c18b23c900c4a2375be", "name": "extract", "content": {"data": {"name": "ABC Corporation", "industry": "Information Technology and Services", "website": "http://www.abccorporation.com", "headquarters": "San Francisco, CA", "yearFounded": 1998, "companySize": "11-50 employees", "specialties": ["Cloud computing", "Software as a Service (SaaS)", "IT consulting"]}, "raw": "<!DOCTYPE html><html><head><title>ABC Corporation</title></head><body><h1>ABC Corporation</h1><p>Industry: Information Technology and Services</p><p>Website: http://www.abccorporation.com</p><p>Headquarters: San Francisco, CA</p><p>Year Founded: 1998</p><p>Company Size: 11-50 employees</p><p>Specialties: Cloud computing, Software as a Service (SaaS), IT consulting</p></body></html>"}}
+</tool_response>
+
+<|assistant|>
+<think>
+Okay, the user provided a LinkedIn URL for the ABC Corporation. The extract tool successfully processed it and returned the company's details such as name, industry, website, headquarters, year founded, company size, and specialties. Since the user didn't ask for raw HTML, I can summarize the key data points without including the HTML.
+</think>The LinkedIn page for ABC Corporation shows they are an IT services company operating in San Francisco, CA, founded in 1998 with 11-50 employees. Their specialties include cloud computing, Software as a Service (SaaS), and IT consulting. You can find more details on their website at http://www.abccorporation.com.
+
+<|user|>
+Could you share some motivational quotes that might inspire my team during this business project?
+
+<|assistant|>
+<think>
+The user wants motivational quotes to inspire their team during a business project. I should use the get_all_motivational_quotes tool to fetch some. Since they didn't specify a language, I'll use the default, maybe English. Also, no parameters for skip or limit were given, so using the default pagination. The quotes might be from famous people or general motivational messages that are suitable for a business context. The tool might return a list, so need to select the top few that are inspiring and relevant.
+</think>
+<tool_call>
+{"name":"get_all_motivational_quotes","arguments":{}}
+</tool_call>
+
+<|tool|>
+<tool_response>
+{"tool_call_id": "call_85d0d52000614fb0aa94a4557275c8e8", "name": "get_all_motivational_quotes", "content": {"quotes": [{"text": "The only way to do great work is to love what you do.", "author": "Steve Jobs", "id": 1}, {"text": "Believe you can and you're halfway there.", "author": "Theodore Roosevelt", "id": 2}, {"text": "It always seems impossible until it's done.", "author": "Nelson Mandela", "id": 3}, {"text": "You are never too old to set another goal or to dream a new dream.", "author": "C.S. Lewis", "id": 4}]}}
+</tool_response>
+
+<|assistant|>
+Here are some motivational quotes to inspire your team:
+1. **Steve Jobs:** "The only way to do great work is to love what you do."  
+2. **Theodore Roosevelt:** "Believe you can and you're halfway there."  
+3. **Nelson Mandela:** "It always seems impossible until it's done."  
+4. **C.S. Lewis:** "You are never too old to set another goal or to dream a new dream."
+
+
+

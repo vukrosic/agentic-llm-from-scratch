@@ -442,7 +442,7 @@ def setup_muon_optimizer(model: nn.Module, config: ModelConfig, accelerator: Acc
 
     return [muon_optimizer, adamw_optimizer]
 
-def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataLoader, accelerator: Accelerator):
+def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader, accelerator: Accelerator):
     """Train the model with Muon optimizer using Accelerate"""
     accelerator.print(f"\n🚀 Training Small model with Muon optimizer on {accelerator.num_processes} GPU(s)")
 
@@ -552,13 +552,19 @@ def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataL
     training_time = time.time() - start_time
     accelerator.print(f"  ⏱️ Training completed in {training_time:.1f} seconds")
 
-    # Final evaluation
+    # Final evaluation on validation set
     final_eval = evaluate_model(model, val_loader, config, accelerator)
     if accelerator.is_main_process:
-        accelerator.print(f"  📊 Final - Loss: {final_eval['val_loss']:.4f}, "
+        accelerator.print(f"  📊 Final Validation - Loss: {final_eval['val_loss']:.4f}, "
               f"Acc: {final_eval['val_accuracy']:.4f}, PPL: {final_eval['val_perplexity']:.2f}")
 
-    return model, final_eval
+    # Final test evaluation on held-out test set (never seen during training)
+    test_eval = evaluate_model(model, test_loader, config, accelerator)
+    if accelerator.is_main_process:
+        accelerator.print(f"  🏆 Final Test (Unseen) - Loss: {test_eval['val_loss']:.4f}, "
+              f"Acc: {test_eval['val_accuracy']:.4f}, PPL: {test_eval['val_perplexity']:.2f}")
+
+    return model, final_eval, test_eval
 
 def main():
     # Initialize accelerator
@@ -594,22 +600,25 @@ def main():
     
     accelerator.print(f"📊 Dataset loaded: {len(texts):,} conversations, {len(tokens):,} total tokens")
 
-    # Train/val split
-    val_size = len(dataset) // 10
-    train_size = len(dataset) - val_size
-    train_dataset, val_dataset = torch.utils.data.random_split(
-        dataset, [train_size, val_size], generator=torch.Generator().manual_seed(42)
+    # Train/val/test split (89/10/1) - minimal test set for final evaluation
+    test_size = max(100, len(dataset) // 100)  # 1% or minimum 100 samples
+    val_size = len(dataset) // 10  # 10%
+    train_size = len(dataset) - val_size - test_size
+    
+    train_dataset, val_dataset, test_dataset = torch.utils.data.random_split(
+        dataset, [train_size, val_size, test_size], generator=torch.Generator().manual_seed(42)
     )
 
     # Create dataloaders (Accelerate will handle distribution)
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, num_workers=2)
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False, num_workers=2)
 
-    accelerator.print(f"📊 Dataset: {len(train_dataset)} train, {len(val_dataset)} val samples")
+    accelerator.print(f"📊 Dataset: {len(train_dataset)} train, {len(val_dataset)} val, {len(test_dataset)} test samples")
 
     # Train model
     start_time = time.time()
-    model, final_metrics = train_model(config, train_loader, val_loader, accelerator)
+    model, final_metrics, test_metrics = train_model(config, train_loader, val_loader, test_loader, accelerator)
     total_time = time.time() - start_time
 
     if accelerator.is_main_process:
@@ -619,6 +628,10 @@ def main():
         accelerator.print(f"   Validation Loss: {final_metrics['val_loss']:.4f}")
         accelerator.print(f"   Validation Accuracy: {final_metrics['val_accuracy']:.4f}")
         accelerator.print(f"   Validation Perplexity: {final_metrics['val_perplexity']:.2f}")
+        accelerator.print(f"\n🎯 Test Set (Unseen Data):")
+        accelerator.print(f"   Test Loss: {test_metrics['val_loss']:.4f}")
+        accelerator.print(f"   Test Accuracy: {test_metrics['val_accuracy']:.4f}")
+        accelerator.print(f"   Test Perplexity: {test_metrics['val_perplexity']:.2f}")
 
         # Save final model
         accelerator.save_state(output_dir="checkpoint_final")
