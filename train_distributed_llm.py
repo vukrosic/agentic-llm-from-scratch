@@ -39,6 +39,7 @@ class ModelConfig:
 
     # Data parameters
     max_seq_len: int = 512
+    data_fraction: float = 1.0  # Fraction of dataset to use (1.0 = full dataset, 0.04 = 1/26th)
     # Removed num_documents and max_tokens limits - using entire dataset
     
     # Evaluation
@@ -58,7 +59,7 @@ class ModelConfig:
     resume_from_checkpoint: Optional[str] = None  # Path to checkpoint directory
     
     # Will be calculated dynamically
-    max_steps: Optional[int] = 300
+    max_steps: Optional[int] = None
 
     def __post_init__(self):
         self.d_k = self.d_model // self.n_heads
@@ -625,6 +626,11 @@ def main():
     config = ModelConfig()
     config.mixed_precision = accelerator.mixed_precision
     
+    # QUICK TEST CONFIGURATION - Uncomment for testing:
+    config.max_steps = 300  # Manual override for testing
+    config.data_fraction = 0.04  # Use 1/26th of the data (as requested)
+    accelerator.print(f"🗺️ TEST MODE: Using {config.data_fraction:.1%} of data, max_steps = {config.max_steps}")
+    
     # Check for resume checkpoint from environment variable (used by resume_training.py)
     if os.environ.get('RESUME_FROM_CHECKPOINT'):
         config.resume_from_checkpoint = os.environ['RESUME_FROM_CHECKPOINT']
@@ -643,6 +649,16 @@ def main():
 
     # Load data
     texts, tokenizer, tokens = load_and_cache_data(config, accelerator)
+    
+    # Apply data reduction if specified
+    if config.data_fraction < 1.0:
+        original_token_count = len(tokens)
+        reduced_token_count = int(len(tokens) * config.data_fraction)
+        tokens = tokens[:reduced_token_count]
+        accelerator.print(f"🔥 Data reduction: Using {config.data_fraction:.1%} of dataset")
+        accelerator.print(f"   Original tokens: {original_token_count:,}")
+        accelerator.print(f"   Reduced tokens: {len(tokens):,}")
+    
     dataset = TextTokenDataset(tokens, config.max_seq_len)
     
     accelerator.print(f"📊 Dataset loaded: {len(texts):,} conversations, {len(tokens):,} total tokens")
@@ -657,11 +673,19 @@ def main():
     )
 
     # Calculate max_steps based on dataset size to ensure full dataset training
+    # BUT only if max_steps is not already manually set
+    if config.max_steps is None:
+        effective_batch_size = config.batch_size * accelerator.num_processes * config.gradient_accumulation_steps
+        steps_per_epoch = len(train_dataset) // effective_batch_size
+        config.max_steps = steps_per_epoch * config.num_epochs
+        accelerator.print(f"📊 Training Configuration (Dynamic):")
+    else:
+        accelerator.print(f"📊 Training Configuration (Manual max_steps):")
+        accelerator.print(f"   Manual max_steps setting: {config.max_steps}")
+    
     effective_batch_size = config.batch_size * accelerator.num_processes * config.gradient_accumulation_steps
     steps_per_epoch = len(train_dataset) // effective_batch_size
-    config.max_steps = steps_per_epoch * config.num_epochs
     
-    accelerator.print(f"📊 Training Configuration:")
     accelerator.print(f"   Steps per epoch: {steps_per_epoch:,}")
     accelerator.print(f"   Total epochs: {config.num_epochs}")
     accelerator.print(f"   Total training steps: {config.max_steps:,}")
