@@ -479,7 +479,7 @@ def train_model(config: ModelConfig, train_loader: DataLoader, val_loader: DataL
 
     # Prepare everything with accelerator
     model, *optimizers = accelerator.prepare(model, *optimizers)
-    train_loader, val_loader = accelerator.prepare(train_loader, val_loader)
+    train_loader, val_loader, test_loader = accelerator.prepare(train_loader, val_loader, test_loader)
     
     # Prepare schedulers separately (they don't need prepare)
     for i, scheduler in enumerate(schedulers):
