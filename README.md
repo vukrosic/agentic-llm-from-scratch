@@ -1,5 +1,11 @@
 # Agentic LLM from Scratch
 
+New video: How To Code & Train Agentic LLM
+
+- YouTube - https://youtu.be/ij8Ru4jxRQY
+
+- Bilibili (中文) - https://www.bilibili.com/video/BV15WvFz8E2R/
+
 A minimalist implementation for training large language models (LLMs) with agentic capabilities from scratch using distributed training. This project focuses on the pretraining phase of an agentic LLM using the Hermes reasoning dataset.
 
 ## 🎯 Project Overview
