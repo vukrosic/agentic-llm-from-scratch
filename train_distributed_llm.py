@@ -645,7 +645,7 @@ def main():
     
     accelerator.print(f"\n📋 Model Configuration:")
     accelerator.print(f"   Architecture: {config.d_model}d, {config.n_layers}L, {config.n_heads}H, {config.d_ff}ff")
-    accelerator.print(f"   Training: {config.num_epochs} epochs ({config.max_steps:,} steps), batch size {config.batch_size} per GPU")
+    accelerator.print(f"   Training: {config.num_epochs} epochs, batch size {config.batch_size} per GPU")
     accelerator.print(f"   Data: hermes_reasoning_tool_use dataset, seq_len {config.max_seq_len}")
 
     # Load data
